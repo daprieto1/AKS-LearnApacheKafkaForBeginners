@@ -39,11 +39,7 @@ public class ProducerDemoKeys {
             producer.send(record, new Callback() {
                 public void onCompletion(RecordMetadata recordMetadata, Exception e) {
                     if (e == null) {
-                        logger.info("Received new metadata. \n" +
-                                "Topic : " + recordMetadata.topic() + "\n" +
-                                "Partition : " + recordMetadata.partition() + "\n" +
-                                "Offset : " + recordMetadata.offset() + "\n" +
-                                "Timestamp : " + recordMetadata.timestamp() + "\n");
+                        logger.info(String.format("Received new metadata. Topic: %s, Partition: %s, Offset: %s, Timestamp: %s", recordMetadata.topic(), recordMetadata.partition(), recordMetadata.offset(), recordMetadata.timestamp()));
                     } else {
                         logger.error("Error while producing", e);
                     }
