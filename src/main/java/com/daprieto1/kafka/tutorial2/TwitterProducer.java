@@ -114,6 +114,13 @@ public class TwitterProducer {
     public KafkaProducer<String, String> createKafkaProducer() throws IOException {
 
         Properties kafkaProperties = getProperties("src/main/resources/kafka.properties");
+
+        // create safe producer
+        kafkaProperties.setProperty(ProducerConfig.ENABLE_IDEMPOTENCE_CONFIG, "true");
+        kafkaProperties.setProperty(ProducerConfig.ACKS_CONFIG, "all");
+        kafkaProperties.setProperty(ProducerConfig.RETRIES_CONFIG, Integer.toString(Integer.MAX_VALUE));
+        kafkaProperties.setProperty(ProducerConfig.MAX_IN_FLIGHT_REQUESTS_PER_CONNECTION, "5"); // kafka >= 1.1
+
         KafkaProducer<String, String> producer = new KafkaProducer<String, String>(kafkaProperties);
         return producer;
     }
