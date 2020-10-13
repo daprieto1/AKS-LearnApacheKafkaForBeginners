@@ -10,6 +10,8 @@ import com.twitter.hbc.core.endpoint.StatusesFilterEndpoint;
 import com.twitter.hbc.core.processor.StringDelimitedProcessor;
 import com.twitter.hbc.httpclient.auth.Authentication;
 import com.twitter.hbc.httpclient.auth.OAuth1;
+import org.apache.kafka.clients.producer.*;
+import org.apache.kafka.common.serialization.StringSerializer;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -25,7 +27,9 @@ import java.util.concurrent.TimeUnit;
 
 public class TwitterProducer {
 
+    private static final String TWITTER_TOPIC = "twitter_tweets";
     private static final Logger logger = LoggerFactory.getLogger(TwitterProducer.class);
+    private static final List<String> terms = Lists.newArrayList("kafka");
 
     public static void main(String[] args) throws IOException {
 
@@ -42,6 +46,17 @@ public class TwitterProducer {
         client.connect();
 
         // create a kafka producer
+        KafkaProducer<String, String> producer = createKafkaProducer();
+
+        // add a shutdown hook
+        Runtime.getRuntime().addShutdownHook(new Thread(() -> {
+            logger.info("Stopping application...");
+            logger.info("Shutting down Twitter client...");
+            client.stop();
+            logger.info("Stoping Kafka producer...");
+            producer.close();
+            logger.info("Done!");
+        }));
 
         // lop to send tweets to Kafka
         // on a different thread, or multiple different threads....
@@ -55,6 +70,14 @@ public class TwitterProducer {
             }
             if (msg != null) {
                 logger.info(msg);
+                producer.send(new ProducerRecord<String, String>(TWITTER_TOPIC, null, msg), new Callback() {
+                    @Override
+                    public void onCompletion(RecordMetadata recordMetadata, Exception e) {
+                        if (e != null) {
+                            logger.error("Error sending message to Kafka", e);
+                        }
+                    }
+                });
             }
         }
         logger.info("End of application!");
@@ -62,21 +85,12 @@ public class TwitterProducer {
 
     public Client createTwitterClient(BlockingQueue<String> msgQueue) throws IOException {
 
-        Properties twitterProperties = new Properties();
-
-        try (InputStream propFile = new FileInputStream("src/main/resources/twitter.properties")) {
-            twitterProperties.load(propFile);
-        } catch (Exception e) {
-            e.printStackTrace();
-            logger.error("Problem with properties file", e);
-            throw e;
-        }
+        Properties twitterProperties = getProperties("src/main/resources/twitter.properties");
 
         /** Declare the host you want to connect to, the endpoint, and authentication (basic auth or oauth) */
         Hosts hosebirdHosts = new HttpHosts(Constants.STREAM_HOST);
         StatusesFilterEndpoint hosebirdEndpoint = new StatusesFilterEndpoint();
 
-        List<String> terms = Lists.newArrayList("bitcoin");
         hosebirdEndpoint.trackTerms(terms);
 
         // These secrets should be read from a config file
@@ -95,5 +109,25 @@ public class TwitterProducer {
         Client hosebirdClient = builder.build();
 
         return hosebirdClient;
+    }
+
+    public KafkaProducer<String, String> createKafkaProducer() throws IOException {
+
+        Properties kafkaProperties = getProperties("src/main/resources/kafka.properties");
+        KafkaProducer<String, String> producer = new KafkaProducer<String, String>(kafkaProperties);
+        return producer;
+    }
+
+    public Properties getProperties(String file) throws IOException {
+        Properties properties = new Properties();
+
+        try (InputStream propFile = new FileInputStream(file)) {
+            properties.load(propFile);
+            return properties;
+        } catch (Exception e) {
+            e.printStackTrace();
+            logger.error(String.format("Problem with %s properties file", file), e);
+            throw e;
+        }
     }
 }
