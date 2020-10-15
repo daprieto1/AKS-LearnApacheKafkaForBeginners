@@ -29,7 +29,7 @@ public class TwitterProducer {
 
     private static final String TWITTER_TOPIC = "twitter_tweets";
     private static final Logger logger = LoggerFactory.getLogger(TwitterProducer.class);
-    private static final List<String> terms = Lists.newArrayList("kafka");
+    private static final List<String> terms = Lists.newArrayList("kafka", "bitcoin", "usa", "politics");
 
     public static void main(String[] args) throws IOException {
 
@@ -120,6 +120,11 @@ public class TwitterProducer {
         kafkaProperties.setProperty(ProducerConfig.ACKS_CONFIG, "all");
         kafkaProperties.setProperty(ProducerConfig.RETRIES_CONFIG, Integer.toString(Integer.MAX_VALUE));
         kafkaProperties.setProperty(ProducerConfig.MAX_IN_FLIGHT_REQUESTS_PER_CONNECTION, "5"); // kafka >= 1.1
+
+        // high throughput producer (at the expense of a bit of latency and CPU usage)
+        kafkaProperties.setProperty(ProducerConfig.COMPRESSION_TYPE_CONFIG, "snappy");
+        kafkaProperties.setProperty(ProducerConfig.LINGER_MS_CONFIG, "20");
+        kafkaProperties.setProperty(ProducerConfig.BATCH_SIZE_CONFIG, Integer.toString(32 * 1024)); // 32 KB batch size
 
         KafkaProducer<String, String> producer = new KafkaProducer<String, String>(kafkaProperties);
         return producer;
