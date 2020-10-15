@@ -1,4 +1,4 @@
-package com.daprieto1.kafka.tutorial2;
+package kafka.tutorial2;
 
 import com.google.common.collect.Lists;
 import com.twitter.hbc.ClientBuilder;
@@ -11,12 +11,10 @@ import com.twitter.hbc.core.processor.StringDelimitedProcessor;
 import com.twitter.hbc.httpclient.auth.Authentication;
 import com.twitter.hbc.httpclient.auth.OAuth1;
 import org.apache.kafka.clients.producer.*;
-import org.apache.kafka.common.serialization.StringSerializer;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.FileInputStream;
-import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.List;
@@ -85,7 +83,7 @@ public class TwitterProducer {
 
     public Client createTwitterClient(BlockingQueue<String> msgQueue) throws IOException {
 
-        Properties twitterProperties = getProperties("src/main/resources/twitter.properties");
+        Properties twitterProperties = getProperties("kafka-producer-twitter/src/main/resources/twitter.properties");
 
         /** Declare the host you want to connect to, the endpoint, and authentication (basic auth or oauth) */
         Hosts hosebirdHosts = new HttpHosts(Constants.STREAM_HOST);
@@ -113,7 +111,7 @@ public class TwitterProducer {
 
     public KafkaProducer<String, String> createKafkaProducer() throws IOException {
 
-        Properties kafkaProperties = getProperties("src/main/resources/kafka.properties");
+        Properties kafkaProperties = getProperties("kafka-producer-twitter/src/main/resources/kafka.properties");
 
         // create safe producer
         kafkaProperties.setProperty(ProducerConfig.ENABLE_IDEMPOTENCE_CONFIG, "true");

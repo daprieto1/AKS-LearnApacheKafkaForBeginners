@@ -1,16 +1,15 @@
-package com.daprieto1.kafka.tutorial1;
+package kafka.tutorial1;
 
-import org.apache.kafka.clients.producer.*;
+import org.apache.kafka.clients.producer.KafkaProducer;
+import org.apache.kafka.clients.producer.ProducerConfig;
+import org.apache.kafka.clients.producer.ProducerRecord;
 import org.apache.kafka.common.serialization.StringSerializer;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import java.util.Properties;
 
-public class ProducerDemoWithCallback {
+public class ProducerDemo {
 
     private static final String BOOTSTRAP_SERVERS = "127.0.0.1:9092";
-    private static final Logger logger = LoggerFactory.getLogger(ProducerDemoWithCallback.class);
 
     public static void main(String[] args) {
 
@@ -27,19 +26,7 @@ public class ProducerDemoWithCallback {
         ProducerRecord<String, String> record = new ProducerRecord<String, String>("first_topic", "hello world!");
 
         // send data - asynchronous
-        producer.send(record, new Callback() {
-            public void onCompletion(RecordMetadata recordMetadata, Exception e) {
-                if (e == null) {
-                    logger.info("Received new metadata. \n" +
-                            "Topic : " + recordMetadata.topic() + "\n" +
-                            "Partition : " + recordMetadata.partition() + "\n" +
-                            "Offset : " + recordMetadata.offset() + "\n" +
-                            "Timestamp : " + recordMetadata.timestamp() + "\n");
-                } else {
-                    logger.error("Error while producing", e);
-                }
-            }
-        });
+        producer.send(record);
 
         //flush data
         producer.flush();

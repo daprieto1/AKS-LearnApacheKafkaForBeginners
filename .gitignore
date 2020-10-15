@@ -1,2 +1,2 @@
-src/main/resources/twitter.properties
+kafka-producer-twitter/src/main/resources/twitter.properties
 target
