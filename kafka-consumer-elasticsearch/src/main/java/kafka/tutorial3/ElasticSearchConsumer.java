@@ -1,5 +1,6 @@
 package kafka.tutorial3;
 
+import com.google.gson.JsonParser;
 import org.apache.http.HttpHost;
 import org.apache.http.auth.AuthScope;
 import org.apache.http.auth.UsernamePasswordCredentials;
@@ -41,11 +42,14 @@ public class ElasticSearchConsumer {
         while (true) {
             ConsumerRecords<String, String> records = consumer.poll(Duration.ofMillis(100));
             for (ConsumerRecord<String, String> record : records) {
-                IndexRequest indexRequest = new IndexRequest("twitter", "tweets")
+                //Sending the same id to ElasticSearch we ensure an idempotent behavior.
+                String id = extractIdFromRecord(record);
+                //String id = extractIdFromTweet(record.value());
+                IndexRequest indexRequest = new IndexRequest("twitter", "tweets", id)
                         .source(record.value(), XContentType.JSON);
                 IndexResponse indexResponse = client.index(indexRequest, RequestOptions.DEFAULT);
-                String id = indexResponse.getId();
-                logger.info(id);
+
+                logger.info(indexResponse.getId());
                 try {
                     Thread.sleep(1000);
                 } catch (InterruptedException e) {
@@ -57,6 +61,13 @@ public class ElasticSearchConsumer {
         //client.close();
     }
 
+    /**
+     * Create Kafka Consumer to read Tweets from Kafka
+     *
+     * @param topic - topic to suscribe from
+     * @return KafkaConsumer<String, String>
+     * @throws IOException
+     */
     public static KafkaConsumer<String, String> createConsumer(String topic) throws IOException {
 
         // create consumer properties
@@ -68,6 +79,12 @@ public class ElasticSearchConsumer {
         return consumer;
     }
 
+    /**
+     * Create ElasticSearch client to send tweets to ElasticSearch
+     *
+     * @return RestHighLevelClient
+     * @throws IOException
+     */
     public static RestHighLevelClient createClient() throws IOException {
 
         Properties elasticSearchProperties = getProperties("kafka-consumer-elasticsearch/src/main/resources/elasticsearch.properties");
@@ -89,6 +106,29 @@ public class ElasticSearchConsumer {
 
         RestHighLevelClient client = new RestHighLevelClient(builder);
         return client;
+    }
+
+    /**
+     * Create an id using the Kafka topic, partition and offset that identifies a record as unique.
+     *
+     * @param record
+     * @return
+     */
+    public static String extractIdFromRecord(ConsumerRecord<String, String> record) {
+        return String.format("%s_%s_%s", record.topic(), record.partition(), record.offset());
+    }
+
+    /**
+     * Extract the tweet id.
+     *
+     * @param tweet
+     * @return
+     */
+    public static String extractIdFromTweet(String tweet) {
+        return JsonParser.parseString(tweet)
+                .getAsJsonObject()
+                .get("id_str")
+                .getAsString();
     }
 
     public static Properties getProperties(String file) throws IOException {
